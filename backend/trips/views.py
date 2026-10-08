@@ -1,9 +1,12 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
 from .serializers import TripPlanSerializer
 from .geocoding_service import geocode_location
 from .route_service import get_route
+from .route_coordinates import (
+    get_fuel_stop_coordinates,
+    get_rest_stop_coordinates,
+)
 
 # Functions used to calculate route and HOS trip logic
 from .trip_logic import (
@@ -109,10 +112,15 @@ def plan_trip(request):
         # --------------------------------
 
         # Calculate the driver's daily schedule
-        # according to the HOS rules
+        # according to the HOS rules.
+        #
+        # distance_miles is passed because the
+        # schedule also needs to calculate
+        # fuel stop timing.
         daily_schedule = calculate_daily_schedule(
             driving_hours,
-            current_cycle_used
+            current_cycle_used,
+            distance_miles
         )
 
         # If the trip cannot be completed,
@@ -129,9 +137,27 @@ def plan_trip(request):
         # --------------------------------
 
         # Convert the daily schedule into
-        # ELD duty-status logs
+        # ELD duty-status logs.
+        #
+        # This includes:
+        # Driving
+        # Pickup / Dropoff
+        # Fuel
+        # Break
+        # Sleep / Sleeper Berth
         eld_logs = create_eld_logs(
             daily_schedule
+        )
+
+        fuel_stop_coordinates = get_fuel_stop_coordinates(
+            route["geometry"],
+            distance_miles,
+            fuel_stops,
+        )
+        rest_stop_coordinates = get_rest_stop_coordinates(
+            route["geometry"],
+            daily_schedule,
+            driving_hours,
         )
 
         # --------------------------------
@@ -153,10 +179,20 @@ def plan_trip(request):
             # to draw the route on the map
             "route_geometry": route["geometry"],
 
+            # Geocoded pickup location and route-based stop locations
+            "pickup_coordinate": [
+                pickup_coords["latitude"],
+                pickup_coords["longitude"],
+            ],
+            "fuel_stop_coordinates": fuel_stop_coordinates,
+            "rest_stop_coordinates": rest_stop_coordinates,
+
             # Daily HOS schedule
+            # Includes fuel and sleep activities
             "daily_schedule": daily_schedule,
 
             # ELD logs for each day
+            # Includes fuel and sleeper berth statuses
             "eld_logs": eld_logs
         })
 
@@ -164,6 +200,8 @@ def plan_trip(request):
     # VALIDATION ERRORS
     # --------------------------------
 
+    # Return validation errors if the
+    # frontend input is invalid
     return Response(
         serializer.errors,
         status=400

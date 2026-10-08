@@ -47,6 +47,18 @@ def calculate_fuel_stops(distance_miles):
     return fuel_stops
 
 
+# Calculate approximately how many
+# driving hours are needed to travel 1,000 miles.
+def calculate_fuel_stop_interval(distance_miles, driving_hours):
+
+    if distance_miles <= 0 or driving_hours <= 0:
+        return None
+
+    miles_per_hour = distance_miles / driving_hours
+
+    return 1000 / miles_per_hour
+
+
 # --------------------------------
 # PICKUP / DROPOFF
 # --------------------------------
@@ -66,7 +78,8 @@ def calculate_loading_unloading_time():
 
 def calculate_daily_schedule(
     driving_hours,
-    current_cycle_used
+    current_cycle_used,
+    distance_miles
 ):
 
     # Calculate how many cycle hours
@@ -77,6 +90,20 @@ def calculate_daily_schedule(
 
     # Calculate pickup and dropoff durations
     pickup_hours, dropoff_hours = calculate_loading_unloading_time()
+
+    # Calculate the number of fuel stops
+    # required for the total trip distance
+    fuel_stops = calculate_fuel_stops(distance_miles)
+
+    # Calculate approximately how many driving hours
+    # are needed between fuel stops
+    fuel_stop_interval = calculate_fuel_stop_interval(
+        distance_miles,
+        driving_hours
+    )
+
+    # Track driving time since the last fuel stop
+    driving_since_fuel = 0
 
     # Minimum total cycle time required
     # pickup + driving + dropoff
@@ -201,6 +228,38 @@ def calculate_daily_schedule(
             })
 
             # --------------------------------
+            # FUEL STOP
+            # --------------------------------
+
+            # Track driving time since the last fuel stop
+            driving_since_fuel += available_driving_hours
+
+            # Add a fuel stop after approximately
+            # every 1,000 miles
+            if (
+                fuel_stop_interval
+                and driving_since_fuel >= fuel_stop_interval
+                and fuel_stops > 0
+                and duty_hours_used + 0.5 <= 14
+            ):
+
+                fuel_hours = 0.5
+
+                day_schedule.append({
+                    "type": "fuel",
+                    "duration": fuel_hours
+                })
+
+                # Fueling is on-duty time
+                duty_hours_used += fuel_hours
+
+                # Reset driving time since the last fuel stop
+                driving_since_fuel = 0
+
+                # One fuel stop has been completed
+                fuel_stops -= 1
+
+            # --------------------------------
             # 30-MINUTE BREAK
             # --------------------------------
 
@@ -262,6 +321,21 @@ def calculate_daily_schedule(
             duty_hours_used += dropoff_hours
 
         # --------------------------------
+        # SLEEP / REST
+        # --------------------------------
+
+        # If the trip continues to another day,
+        # add a 10-hour sleep/rest period.
+        if remaining_driving_hours > 0:
+
+            sleep_hours = 10
+
+            day_schedule.append({
+                "type": "sleep",
+                "duration": sleep_hours
+            })
+
+        # --------------------------------
         # SAVE DAY
         # --------------------------------
 
@@ -320,11 +394,12 @@ def create_eld_logs(daily_schedules):
 
                 status = "Driving"
 
-            # Pickup and dropoff are
+            # Pickup, dropoff, and fuel are
             # on-duty but not driving
             elif activity_type in [
                 "pickup",
-                "dropoff"
+                "dropoff",
+                "fuel"
             ]:
 
                 status = "On Duty Not Driving"
@@ -333,6 +408,11 @@ def create_eld_logs(daily_schedules):
             elif activity_type == "break":
 
                 status = "Off Duty"
+
+            # Sleep/rest period
+            elif activity_type == "sleep":
+
+                status = "Sleeper Berth"
 
             else:
 
