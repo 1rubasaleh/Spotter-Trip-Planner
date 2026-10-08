@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const TRIP_PLAN_ENDPOINT = "/api/trips/plan/";
-
+const TRIP_PLAN_ENDPOINT =
+  "https://spotter-trip-planner-86le.onrender.com/api/trips/plan/";
 export async function planTrip({
   currentLocation,
   pickupLocation,
