@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-5f#h+6ik474b$nl=%ac!c1@hks92u!sl-k8r8-bv7e6!eyrqxb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "spotter-trip-planner-86le.onrender.com",
+]
 
 
 # Application definition
