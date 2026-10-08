@@ -1,16 +1,122 @@
-# React + Vite
+# Spotter Trip Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack trip planning application built with React and Django.
 
-Currently, two official plugins are available:
+The user can enter a current location, pickup location, dropoff location, and current cycle hours. The application calculates the route and creates a driving schedule based on the required HOS rules.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Enter trip locations
+- Enter current cycle hours
+- View the route on an interactive map
+- Show pickup and dropoff locations
+- Calculate fuel stops when needed
+- Calculate driving, break, and rest periods
+- Generate daily ELD logs
+- Support trips that take more than one day
+- Check the remaining cycle hours
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## HOS Rules
 
-## Expanding the ESLint configuration
+The project uses these rules:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- 11 hours maximum driving time
+- 14 hours maximum duty window
+- 30-minute break after 8 hours of driving
+- 10 hours rest between driving days
+- 70 hours / 8-day cycle
+- Fuel stop every 1,000 miles
+- 1 hour for pickup
+- 1 hour for dropoff
+
+## Technologies
+
+### Frontend
+
+- React
+- Vite
+- Tailwind CSS
+- Axios
+- React Leaflet
+- Leaflet
+
+### Backend
+
+- Python
+- Django
+- Django REST Framework
+- Gunicorn
+
+### APIs
+
+- OpenStreetMap Nominatim
+- OSRM
+
+## How it works
+
+1. The user enters the trip details.
+2. The frontend sends the data to the Django backend.
+3. The backend finds the locations and calculates the route.
+4. The trip distance and driving time are calculated.
+5. The HOS rules are applied to create the daily schedule.
+6. ELD logs are generated and returned to the frontend.
+7. The frontend displays the route and results.
+
+## Project Structure
+
+```text
+Spotter-Trip-Planner/
+│
+├── backend/
+│   ├── config/
+│   └── trips/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   └── services/
+│   └── public/
+│
+└── README.md
+```
+
+## Run Locally
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+python manage.py runserver
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Main Endpoint
+
+```text
+POST /api/trips/plan/
+```
+
+Example request:
+
+```json
+{
+  "current_location": "Chicago, IL",
+  "pickup": "Indianapolis, IN",
+  "dropoff": "Columbus, OH",
+  "current_cycle_used": 10
+}
+```
+
+## Deployment
+
+Frontend: Vercel
+
+Backend: Render
